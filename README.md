@@ -43,10 +43,12 @@ divera-monitor-linux/
 ├── README.md
 ├── EINRICHTUNG.md               # Vollständige Schritt-für-Schritt-Anleitung
 ├── scripts/
-│   ├── pir_listener.py          # UDP-Listener + HTTP-Statusserver
+│   ├── pir_listener.py          # UDP-Listener + HTTP-Statusserver (Port 8080)
+│   ├── app_monitor.py           # App-Monitor HTTP-Statusserver (Port 8081)
 │   └── alarm_wakeup.sh          # Alarm-Wakeup für Divera Skript-Integration
 └── systemd/
     ├── pir-listener.service     # systemd Service für pir_listener.py
+    ├── app-monitor.service      # systemd Service für app_monitor.py
     └── x11vnc.service           # systemd Service für VNC-Zugang
 ```
 
@@ -61,8 +63,10 @@ Die vollständige Anleitung mit allen Schritten findet ihr in **[EINRICHTUNG.md]
 ```bash
 mkdir -p /home/divera/divera
 cp scripts/pir_listener.py /home/divera/divera/
+cp scripts/app_monitor.py /home/divera/divera/
 cp scripts/alarm_wakeup.sh /home/divera/divera/
 chmod +x /home/divera/divera/pir_listener.py
+chmod +x /home/divera/divera/app_monitor.py
 chmod +x /home/divera/divera/alarm_wakeup.sh
 ```
 
@@ -70,17 +74,18 @@ chmod +x /home/divera/divera/alarm_wakeup.sh
 
 ```bash
 sudo cp systemd/pir-listener.service /etc/systemd/system/
+sudo cp systemd/app-monitor.service /etc/systemd/system/
 sudo cp systemd/x11vnc.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now pir-listener.service x11vnc.service
+sudo systemctl enable --now pir-listener.service app-monitor.service x11vnc.service
 ```
 
 ### Status prüfen
 
 ```bash
-sudo systemctl status pir-listener.service x11vnc.service
+sudo systemctl status pir-listener.service app-monitor.service x11vnc.service
 curl http://localhost:8080
-# Erwartete Antwort: {"status": "ok"}
+curl http://localhost:8081
 ```
 
 ---
@@ -89,11 +94,12 @@ curl http://localhost:8080
 
 Der `pir_listener.py` stellt auf **Port 8080** einen HTTP-Endpunkt bereit:
 
-| Endpunkt | Antwort |
-|----------|---------|
-| `GET /` | `{"status": "ok"}` mit HTTP 200 |
+| Endpunkt | Beschreibung | Antwort |
+|----------|-------------|---------|
+| `GET http://<IP>:8080` | PIR Listener läuft | `{"status": "ok"}` HTTP 200 |
+| `GET http://<IP>:8081` | Divera App läuft | `{"status": "ok"}` HTTP 200 / `{"status": "error"}` HTTP 503 |
 
-In Uptime Kuma: HTTP-Monitor auf `http://<IP>:8080`, Erwartung HTTP 200.
+In Uptime Kuma jeweils einen HTTP-Monitor pro Endpunkt anlegen.
 
 ---
 

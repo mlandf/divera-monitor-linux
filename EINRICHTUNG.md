@@ -320,6 +320,94 @@ In der Divera App einrichten:
 
 ---
 
+## 12. App Monitor
+
+Überwacht ob die Divera Monitor App läuft und stellt einen HTTP-Statusendpunkt auf Port 8081 bereit – zur Überwachung via Uptime Kuma oder ähnlichen Tools.
+
+```bash
+nano /home/divera/divera/app_monitor.py
+```
+
+Inhalt:
+
+```python
+#!/usr/bin/env python3
+import subprocess
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+HTTP_PORT = 8081
+
+class AppMonitorHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        result = subprocess.run(
+            ["pgrep", "-f", "Monitor.AppImage"],
+            capture_output=True
+        )
+        if result.returncode == 0:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status": "ok"}')
+        else:
+            self.send_response(503)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status": "error", "message": "Monitor.AppImage not running"}')
+
+    def log_message(self, format, *args):
+        pass
+
+server = HTTPServer(("0.0.0.0", HTTP_PORT), AppMonitorHandler)
+print(f"App Monitor läuft auf Port {HTTP_PORT}")
+server.serve_forever()
+```
+
+```bash
+chmod +x /home/divera/divera/app_monitor.py
+```
+
+Als systemd Service:
+
+```bash
+sudo nano /etc/systemd/system/app-monitor.service
+```
+
+Inhalt:
+
+```ini
+[Unit]
+Description=Divera App Monitor
+After=network.target graphical.target
+
+[Service]
+Type=simple
+User=divera
+ExecStart=/usr/bin/python3 /home/divera/divera/app_monitor.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable app-monitor.service
+sudo systemctl start app-monitor.service
+```
+
+Testen:
+
+```bash
+curl http://localhost:8081
+# Erwartete Antwort wenn App läuft:  {"status": "ok"}
+# Erwartete Antwort wenn App weg:    {"status": "error", "message": "Monitor.AppImage not running"}
+```
+
+> Uptime Kuma: HTTP Monitor auf `http://<IP>:8081`, erwartet HTTP 200.
+
+---
+
 ## Bekannte Probleme
 
 - **Bildschirmschoner-Tab in Divera 2.3.1 auf Linux ist defekt** – wird durch PIR Listener auf OS-Ebene umgangen. Alarm-Wakeup über Skript-Integration (Schritt 11).
@@ -343,6 +431,7 @@ Eintrag:
 /home/divera/divera/
 ├── Monitor.AppImage
 ├── pir_listener.py
+├── app_monitor.py
 └── alarm_wakeup.sh
 
 ~/.config/autostart/
@@ -351,5 +440,6 @@ Eintrag:
 
 /etc/systemd/system/
 ├── pir-listener.service
+├── app-monitor.service
 └── x11vnc.service
 ```

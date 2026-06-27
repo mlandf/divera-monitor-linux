@@ -1,0 +1,13 @@
+[Unit]
+Description=Divera App Monitor
+After=network.target graphical.target
+
+[Service]
+Type=simple
+User=divera
+ExecStart=/usr/bin/python3 /home/divera/divera/app_monitor.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
