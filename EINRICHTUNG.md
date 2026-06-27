@@ -170,6 +170,49 @@ Exec=xscreensaver -no-splash
 
 In `xscreensaver-demo` den Modus auf **Blank Screen Only** setzen. Bei der Frage nach light-locker auf **Kill** klicken.
 
+### xscreensaver Bugfix – `selected: -1`
+
+> **Hintergrund:** In xscreensaver 6.09 unter Debian 13 tritt ein Bug auf, bei dem `~/.xscreensaver` den Wert `selected: -1` enthält. Dieser ungültige Index versetzt den Daemon in einen Zustand, in dem er annimmt, bereits ein Screensaver-Programm zu laufen – und deshalb den Blank-Timeout nie auslöst. Der Bildschirm bleibt dauerhaft an, egal wie lange kein Input kommt. Das Problem ist unabhängig davon, ob xscreensaver korrekt läuft und ob der Idle-Timer hochzählt.
+
+Nach dem ersten Start von `xscreensaver-demo` muss die Konfiguration korrigiert und xscreensaver neu gestartet werden:
+
+```bash
+# xscreensaver beenden
+DISPLAY=:0 xscreensaver-command -exit
+sleep 1
+
+# Bugfix: selected auf 0 setzen
+sed -i 's/^selected:.*/selected:\t0/' ~/.xscreensaver
+
+# Unfade deaktivieren (Bildschirm geht sofort an statt einzublenden)
+sed -i 's/^unfade:.*/unfade:\tFalse/' ~/.xscreensaver
+
+# Timeout auf 20 Minuten sicherstellen
+sed -i 's/^timeout:.*/timeout:\t0:20:00/' ~/.xscreensaver
+
+# Neu starten
+DISPLAY=:0 xscreensaver -no-splash &
+sleep 2
+
+# Prüfen ob die Werte korrekt sind
+grep -E "timeout|selected|unfade" ~/.xscreensaver
+```
+
+Erwartete Ausgabe:
+```
+timeout:    0:20:00
+selected:   0
+unfade:     False
+```
+
+Manuell testen ob der Screensaver aktivierbar ist:
+
+```bash
+DISPLAY=:0 xscreensaver-command -activate
+```
+
+Der Bildschirm sollte sofort schwarz werden.
+
 ---
 
 ## 10. PIR Bewegungsmelder Listener
@@ -411,6 +454,9 @@ curl http://localhost:8081
 ## Bekannte Probleme
 
 - **Bildschirmschoner-Tab in Divera 2.3.1 auf Linux ist defekt** – wird durch PIR Listener auf OS-Ebene umgangen. Alarm-Wakeup über Skript-Integration (Schritt 11).
+
+- **xscreensaver blankt nicht obwohl korrekt konfiguriert** – Bug in xscreensaver 6.09: `selected: -1` in `~/.xscreensaver` versetzt den Daemon in einen ungültigen Zustand. Lösung: Bugfix aus Schritt 9 anwenden. Der Wert `selected: -1` wird von `xscreensaver-demo` erzeugt wenn kein einzelner Hack ausgewählt ist (Modus: Blank Screen Only). xscreensaver interpretiert `-1` intern als laufenden Hack und löst den Blank-Timeout nie aus.
+
 - **Weißer Bildschirm nach der Nacht** durch nächtliche IP-Neuvergabe des Providers (bisher nicht aufgetreten) – bei Bedarf automatischen Neustart der App nachts per Cronjob einrichten:
 
 ```bash

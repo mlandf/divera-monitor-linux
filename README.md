@@ -138,6 +138,7 @@ Da der HTTP-Status allein für Uptime Kuma bereits ausreicht (200 = UP, 503 = DO
 | Bildschirmschoner lässt sich nicht per App steuern | Bildschirmschoner-Tab in Divera 2.3.1 Linux defekt | `pir_listener.py` steuert xscreensaver direkt auf OS-Ebene |
 | Bildschirm bleibt im Alarmfall schwarz | App kann Screensaver nicht wecken | `alarm_wakeup.sh` via Divera Skript-Integration |
 | Weißer Bildschirm nach der Nacht | Nächtliche IP-Neuvergabe des Providers | Optionaler Cronjob (siehe EINRICHTUNG.md) |
+| xscreensaver blankt trotz korrekter Konfiguration nicht | Bug in xscreensaver 6.09: `selected: -1` in `~/.xscreensaver` versetzt den Daemon in einen ungültigen Zustand | Siehe Abschnitt „xscreensaver Bugfix" in EINRICHTUNG.md |
 
 ---
 
