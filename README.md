@@ -92,14 +92,41 @@ curl http://localhost:8081
 
 ## Monitoring
 
-Der `pir_listener.py` stellt auf **Port 8080** einen HTTP-Endpunkt bereit:
+Beide Skripte stellen HTTP-Endpunkte bereit, die sich einfach in [Uptime Kuma](https://github.com/louislam/uptime-kuma) oder ähnliche Monitoring-Tools einbinden lassen.
 
-| Endpunkt | Beschreibung | Antwort |
-|----------|-------------|---------|
-| `GET http://<IP>:8080` | PIR Listener läuft | `{"status": "ok"}` HTTP 200 |
-| `GET http://<IP>:8081` | Divera App läuft | `{"status": "ok"}` HTTP 200 / `{"status": "error"}` HTTP 503 |
+### Endpunkte
 
-In Uptime Kuma jeweils einen HTTP-Monitor pro Endpunkt anlegen.
+| Port | Skript | Beschreibung |
+|------|--------|-------------|
+| `8080` | `pir_listener.py` | PIR Listener läuft und hört auf UDP-Broadcasts |
+| `8081` | `app_monitor.py` | Divera Monitor App läuft als Prozess |
+
+### Wie funktioniert der App-Monitor?
+
+`app_monitor.py` ist ein schlanker HTTP-Server, der bei jeder Anfrage per `pgrep` prüft ob der `Monitor.AppImage` Prozess auf dem System aktiv ist. Je nach Ergebnis antwortet er mit HTTP 200 oder HTTP 503:
+
+```
+# App läuft:
+HTTP 200 → {"status": "ok"}
+
+# App nicht gefunden:
+HTTP 503 → {"status": "error", "message": "Monitor.AppImage not running"}
+```
+
+Da der HTTP-Status allein für Uptime Kuma bereits ausreicht (200 = UP, 503 = DOWN), kann man den Monitor einfach als **HTTP-Monitor** einrichten. Wer zusätzlich auf den JSON-Inhalt prüfen will, kann in Uptime Kuma den Monitortyp **HTTP(s) – Schlüsselwort** verwenden und als Schlüsselwort `"status": "ok"` eintragen – damit wird der Monitor nur dann als UP gewertet, wenn sowohl der HTTP-Statuscode 200 als auch das Schlüsselwort in der Antwort vorhanden sind.
+
+### Uptime Kuma Konfiguration
+
+**PIR Listener (Port 8080):**
+- Typ: `HTTP(s)`
+- URL: `http://<IP>:8080`
+- Erwarteter HTTP-Status: `200`
+
+**App Monitor (Port 8081):**
+- Typ: `HTTP(s) – Schlüsselwort`
+- URL: `http://<IP>:8081`
+- Schlüsselwort: `"status": "ok"`
+- Erwarteter HTTP-Status: `200`
 
 ---
 
