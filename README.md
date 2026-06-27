@@ -118,8 +118,9 @@ Da der HTTP-Status allein für Uptime Kuma bereits ausreicht (200 = UP, 503 = DO
 ### Uptime Kuma Konfiguration
 
 **PIR Listener (Port 8080):**
-- Typ: `HTTP(s)`
+- Typ: `HTTP(s) – Schlüsselwort`
 - URL: `http://<IP>:8080`
+- Schlüsselwort: `"status": "ok"`
 - Erwarteter HTTP-Status: `200`
 
 **App Monitor (Port 8081):**
